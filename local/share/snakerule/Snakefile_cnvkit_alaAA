@@ -1,0 +1,23 @@
+include: '../conf.sk'
+
+# following the suggestions/things done by AA authors in https://github.com/jluebeck/PrepareAA/blob/master/PrepareAA.py 
+# for cnvkit. Specifically using their reference (done how?) also for the sample that has a matched normal right now (to be consistent with the other ones)
+def is_wgs(wildcards):
+    if WGS == "yes":
+        return "-m wgs -p " + str(CORES)
+    return "--targets {params.bed}"
+
+# TODO rule all bam expand
+
+rule batch:
+    input: bam="../bam_ln/{sample}.bam", aacnn=AACNN
+    output: o2="{sample}.plh"
+    log: "{sample}.log"
+    params: wgs=is_wgs
+    shell: 
+        """
+            cnvkit batch {params.wgs} -y -r {input.aacnn} -d {wildcards.sample} {input.bam} 2> {log} 
+            touch {output.o2}
+        """
+
+#rule segment (needed? probably no)

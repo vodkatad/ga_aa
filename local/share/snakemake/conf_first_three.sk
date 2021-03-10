@@ -1,0 +1,53 @@
+import os
+ROOT=os.environ.get('BIOINFO_ROOT')
+def find_prj_root(path=os.getcwd()):
+    if os.path.isfile(os.path.join(path,".PRJ_ROOT")):
+        return path
+    else:
+        if path:
+            return find_prj_root(os.path.dirname(path))
+        else:
+            raise Exception("Can not find the PRJ_ROOT directory")
+
+
+PRJ_ROOT=find_prj_root()
+SRC_DIR=PRJ_ROOT+'/local/src'
+BIN_DIR=PRJ_ROOT+'/local/bin'
+
+SAMPLES=['CRC1629LMO0A04014001D02000',]# 'CRC1430LMO0B04008001D02000', 'CRC0124LMO0B04019001D02000']
+#SAMPLES=['CRC1629LMO0A04014001D02000', 'CRC1430LMO0B04008001D02000', 'CRC0124LMO0B04019001D02000']
+
+BAM_SEARCH_DIRS=['/mnt/cold1/snaketree/prj/snakegatk/dataset/paired_GA','/mnt/cold1/snaketree/prj/snakegatk/dataset/unpaired_GA']
+
+def touch(fname, times=None):
+    with open(fname, 'a'):
+        os.utime(fname, times)
+
+rule link_bams:
+    output: "linked_bams.plh"
+    run:
+        import glob
+        import os
+        found = []
+        samples = [] # too lazy to setup a dict now
+        for s in SAMPLES:
+            for bd in BAM_SEARCH_DIRS:
+                f = os.path.join(bd, 'align', 'markedDup_'+s+'.sorted.bam')
+                if os.path.exists(f):
+                    found.append(f)
+                    samples.append(s)
+        if len(found) != len(SAMPLES):
+            print('Did not found a bam for each samples, check the conf.sk!')
+            raise RuleException()
+        os.makedirs('bam_ln')
+        i = 0
+        for f in found:
+            os.symlink(f, os.path.join('bam_ln', samples[i]+'.bam'))
+            i += 1
+        touch(output[0])
+
+# CNVkit conf
+WGS='yes'
+CORES=2
+REF_V='GRCh38'
+AACNN=PRJ_ROOT+'/local/share/data/data_repo/'+REF_V+'/'+REF_V+'_cnvkit_filtered_ref.cnn'
