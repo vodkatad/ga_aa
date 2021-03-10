@@ -1,0 +1,7 @@
+dataset/*
+local/src/AmpliconArchitect
+local/src/AmpliconClassifier
+local/src/mosek
+local/src/mosektoolslinux64x86.tar.bz2
+local/share/data/*
+.snakemake
