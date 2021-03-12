@@ -3,16 +3,17 @@ include: '../conf.sk'
 # following the suggestions/things done by AA authors in https://github.com/jluebeck/PrepareAA/blob/master/PrepareAA.py 
 # for cnvkit. Specifically using their reference (done how?) also for the sample that has a matched normal right now (to be consistent with the other ones)
 def is_wgs(wildcards):
-    if WGS == "yes":
-        return "-m wgs -p " + str(CORES)
-    return "--targets {params.bed}"
+    if WGS == 'yes':
+        return '-m wgs -p ' + str(CORES)
+    return '--targets {params.bed}'
 
 # TODO rule all bam expand
 
+# Time: roughly 1h+ on ulisse disk cold?
 rule batch:
-    input: bam="../bam_ln/{sample}.bam", aacnn=AACNN
-    output: o2="{sample}.plh"
-    log: "{sample}.log"
+    input: bam='../bam_ln/{sample}.bam', aacnn=AACNN
+    output: o2='{sample}.plh'
+    log: '{sample}.log'
     params: wgs=is_wgs
     shell: 
         """
@@ -20,4 +21,32 @@ rule batch:
             touch {output.o2}
         """
 
-#rule segment (needed? probably no)
+# 1'
+rule segment:
+    input: '{sample}/{sample}.cnr'
+    output: '{sample}/{sample}.cns'
+    params: cores=str(CORES)
+    log: '{sample}.cns.log'
+    shell:
+        """
+            cnvkit segment -p {params.cores} -o {output} {input} 2> {log}
+        """
+
+# TODO investigate reasons behind params from PrepareAA (slightly more lenient than the $AA defaults and are propagated 
+# to amplified_intervals
+# third column cnvkit and not CN is ok?
+rule cns_to_bed:
+    input: cns='{sample}/{sample}.cns'
+    output: '{sample}.bed'
+    params: cngain=4.5, cnsize_min=50000
+    run:
+        with open(input.cns) as infile, open(output[0], 'w') as outfile:
+            head = next(infile).rstrip().rsplit("\t")
+            for line in infile:
+                fields = line.rstrip().rsplit("\t")
+                s, e = int(fields[1]), int(fields[2])
+                cn_r = float(fields[4])
+                cn = 2 ** (cn_r + 1)
+                if cn >= params.cngain and e - s >= params.cnsize_min:
+                    outline = "\t".join(fields[0:3] + ["CNVkit", str(cn)]) + "\n"
+                    outfile.write(outline)
