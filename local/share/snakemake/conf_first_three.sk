@@ -17,7 +17,7 @@ BIN_DIR=PRJ_ROOT+'/local/bin'
 SAMPLES=['CRC1629LMO0A04014001D02000',]# 'CRC1430LMO0B04008001D02000', 'CRC0124LMO0B04019001D02000']
 #SAMPLES=['CRC1629LMO0A04014001D02000', 'CRC1430LMO0B04008001D02000', 'CRC0124LMO0B04019001D02000']
 
-BAM_SEARCH_DIRS=['/mnt/cold1/snaketree/prj/snakegatk/dataset/paired_GA','/mnt/cold1/snaketree/prj/snakegatk/dataset/unpaired_GA']
+BAM_SEARCH_DIRS=['/mnt/work1/snaketree/prj/snakegatk/dataset/paired_GA','/mnt/work1/snaketree/prj/snakegatk/dataset/unpaired_GA']
 
 def touch(fname, times=None):
     with open(fname, 'a'):
