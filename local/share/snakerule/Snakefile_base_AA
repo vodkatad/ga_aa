@@ -2,7 +2,7 @@ include:'./conf.sk'
 
 ### How to use these exports? is it ok to leave them in the .bashrc? or is it better to have them
 ### called by the rule each time?
-### export AA_DATA_REPO=/mnt/cold1/snaketree/prj/ga_aa/local/share/data/data_repo
+### export AA_DATA_REPO=/mnt/work1/snaketree/prj/ga_aa/local/share/data/data_repo
 ### export MOSEKPLATFORM=linux64x86
 ### export PATH=$PATH:/mnt/work1/snaketree/prj/ga_aa/local/src/mosek/8/tools/platform/$MOSEKPLATFORM/bin
 ### export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/mnt/work1/snaketree/prj/ga_aa/local/src/mosek/8/tools/platform/$MOSEKPLATFORM/bin
@@ -27,7 +27,7 @@ rule all:
     ### aa/ the generic one for this experiment
         ### {sample}/ different for each sample running: here we find the .bed outputted from amplified_intervals
             ### AA/ given the fact that AA produces 12345543145 files, we have a folders only for him
-                ### classifier/ the files from amplicon_classifier, to find them easier
+                ### classifier/ the files from amplicon_classifier, to find them easily
 
 
 rule aintervals:
@@ -50,21 +50,27 @@ rule aintervals:
 rule aarchitect:
     input: bam="bam_ln/{sample}.bam", bed="aa/{sample}/aintervals_{sample}.bed" 
     params: tool=AA, ref=REF_V, ds=DOWNSAMPLE, out="aarchitect_{sample}"
-    output: "aa/{sample}/AA/aarchitect_{sample}_src_summary.txt", allin="aa/{sample}/AA/{sample}_all" # a random output to start the rule for now
+    output: "aa/{sample}/AA/aarchitect_{sample}_summary.txt", allin="aa/{sample}/AA/{sample}_all" # a random output to start the rule for now
     # directory("aa/{sample}/AA/")
     shell:
         """
             {params.tool} --bam {input.bam} --bed {input.bed} --out {params.out} --ref {params.ref} --downsample {params.ds}
-            mv aarchitect* aa/{wildcards.sample}/AA/
+            mv aarchitect_{wildcards.sample}* aa/{wildcards.sample}/AA/
             readlink -f aa/{wildcards.sample}/AA/*cycles.txt > aa/{wildcards.sample}/AA/cycles
             readlink -f aa/{wildcards.sample}/AA/*graph.txt > aa/{wildcards.sample}/AA/graph  
-            paste --delimiters='\t' aa/{wildcards.sample}/AA/cycles aa/{wildcards.sample}/AA/graph > aa/{wildcards.sample}/AA/{output.allin}.tmp
-            bawk '{{print NR FS $1 FS $2}}' aa/{wildcards.sample}/AA/{output.allin}.tmp > aa/{wildcards.sample}/AA/{output.allin}
-            rm aa/{wildcards.sample}/AA/{output.allin}.tmp
+            paste --delimiters='\t' aa/{wildcards.sample}/AA/cycles aa/{wildcards.sample}/AA/graph > {output.allin}.tmp
+            bawk '{{print NR FS $1 FS $2}}' {output.allin}.tmp > {output.allin}
+            rm {output.allin}.tmp
         """
             # mv *all aa/{wildcards.sample}/AA/
 ### this creates files but fail cause they are missing...
 ### can only leave *graph.txt and *cycles.txt
+
+#last rule will fail for, but...right now we are happa
+#egrassi@ulisse:/mnt/work1/snaketree/prj/ga_aa/dataset/first_three$ cat aa/CRC1502-09C-2-1/AA/aarchitect_CRC1502-09C-2-1_summary.txt
+##Amplicons = 0
+#-----------------------------------------------------------------------------------------
+#
 
 #anche qui mv forse rischioso se stan girando altre regole...prenderei esplicitamente quelli che genera lui quindi:
 #
@@ -80,5 +86,6 @@ rule aclassifier:
     shell:
         """
             {params.tool} -i {input} --ref {params.ref} --report_genes all
-            mv {wildcards.sample}* aa/{wildcards.sample}/AA/classifier/
+            mv {wildcards.sample}_all_amplicon* aa/{wildcards.sample}/AA/classifier/
+            mv {wildcards.sample}_all_gene* aa/{wildcards.sample}/AA/classifier/
         """
