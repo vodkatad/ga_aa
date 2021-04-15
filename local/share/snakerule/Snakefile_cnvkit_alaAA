@@ -8,7 +8,8 @@ def is_wgs(wildcards):
     return '--targets {params.bed}'
 
 # TODO rule all bam expand
-
+rule all:
+    input: expand("{sample}.bed", sample=SAMPLES)
 # Time: roughly 1h+ on ulisse disk cold?
 rule batch:
     input: bam='../bam_ln/{sample}.bam', aacnn=AACNN

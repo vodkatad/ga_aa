@@ -1,1 +1,72 @@
 include:'./conf.sk'
+
+### How to use these exports? is it ok to leave them in the .bashrc? or is it better to have them
+### called by the rule each time?
+### export AA_DATA_REPO=/mnt/cold1/snaketree/prj/ga_aa/local/share/data/data_repo
+### export MOSEKPLATFORM=linux64x86
+### export PATH=$PATH:/mnt/work1/snaketree/prj/ga_aa/local/src/mosek/8/tools/platform/$MOSEKPLATFORM/bin
+### export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/mnt/work1/snaketree/prj/ga_aa/local/src/mosek/8/tools/platform/$MOSEKPLATFORM/bin
+### export MOSEKLM_LICENSE_FILE=/mnt/work1/snaketree/prj/ga_aa/local/share/data
+### up to now they are in my .bashrc
+
+## pirla prendi i bam dalla cartella coi link simbolici -> brutto lama
+rule all:
+    input: 
+        expand("aa/{sample}/AA/classifier/{sample}_all_amplicon_classification_profiles.tsv", sample=SAMPLES)
+### why this rule searches for these files?
+### mviviani@ulisse:/mnt/work1/snaketree/prj/ga_aa/dataset/first_three$ snakemake -fpn all
+### Building DAG of jobs...
+### MissingInputException in line 20 of /mnt/work1/snaketree/prj/ga_aa/dataset/first_three/Snakefile:
+### Missing input files for rule aintervals:
+### cnvkit/aa/CRC1430LMO0B04008001D02000/AA/CRC1430LMO0B04008001D02000.bed
+### bam_ln/aa/CRC1430LMO0B04008001D02000/AA/CRC1430LMO0B04008001D02000.bam
+
+
+### these rules should produce tons of files: how do we organize them?
+### folders are organized, starting from the main one first_three/:
+    ### aa/ the generic one for this experiment
+        ### {sample}/ different for each sample running: here we find the .bed outputted from amplified_intervals
+            ### AA/ given the fact that AA produces 12345543145 files, we have a folders only for him
+                ### classifier/ the files from amplicon_classifier, to find them easier
+
+
+rule aintervals:
+    input: bed="cnvkit/{sample}.bed", bam="bam_ln/{sample}.bam"
+    params: tool=AA_SRC+"/amplified_intervals.py", ref=REF_V, out="aintervals_{sample}"
+    output: "aa/{sample}/aintervals_{sample}.bed"
+    log: "aa/{sample}/aintervals_{sample}.bed.log"
+    shell:
+        """
+            {params.tool} --bed {input.bed} --out {params.out} --bam {input.bam} --ref {params.ref} 2> {log}
+            mv aintervals_{wildcards.sample}.bed aa/{wildcards.sample}/aintervals_{wildcards.sample}.bed
+        """
+            
+rule aarchitect:
+    input: bam="bam_ln/{sample}.bam", bed="aa/{sample}/aintervals_{sample}.bed" 
+    params: tool=AA, ref=REF_V, ds=DOWNSAMPLE, out="aarchitect_{sample}"
+    output: "aa/{sample}/AA/aarchitect_{sample}_src_summary.txt", allin="aa/{sample}/AA/{sample}_all" # a random output to start the rule for now
+    # directory("aa/{sample}/AA/")
+    shell:
+        """
+            {params.tool} --bam {input.bam} --bed {input.bed} --out {params.out} --ref {params.ref} --downsample {params.ds}
+            mv aarchitect* aa/{wildcards.sample}/AA/
+            readlink -f aa/{wildcards.sample}/AA/*cycles.txt > aa/{wildcards.sample}/AA/cycles
+            readlink -f aa/{wildcards.sample}/AA/*graph.txt > aa/{wildcards.sample}/AA/graph  
+            paste --delimiters='\t' aa/{wildcards.sample}/AA/cycles aa/{wildcards.sample}/AA/graph > aa/{wildcards.sample}/AA/{output.allin}.tmp
+            bawk '{{print NR FS $1 FS $2}}' aa/{wildcards.sample}/AA/{output.allin}.tmp > aa/{wildcards.sample}/AA/{output.allin}
+            rm aa/{wildcards.sample}/AA/{output.allin}.tmp
+        """
+            # mv *all aa/{wildcards.sample}/AA/
+### this creates files but fail cause they are missing...
+### can only leave *graph.txt and *cycles.txt
+
+rule aclassifier:
+    input: "aa/{sample}/AA/{sample}_all"
+    params: tool=AA_CLASS, ref=REF_V, out="aclassifier_{sample}"
+    output: "aa/{sample}/AA/classifier/{sample}_all_amplicon_classification_profiles.tsv"
+    # log:
+    shell:
+        """
+            {params.tool} -i {input} --ref {params.ref} --report_genes all
+            mv {wildcards.sample}* aa/{wildcards.sample}/AA/classifier/
+        """
