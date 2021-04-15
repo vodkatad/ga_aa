@@ -14,9 +14,10 @@ PRJ_ROOT=find_prj_root()
 SRC_DIR=PRJ_ROOT+'/local/src'
 BIN_DIR=PRJ_ROOT+'/local/bin'
 
-SAMPLES=['CRC1629LMO0A04014001D02000', 'CRC1430LMO0B04008001D02000', 'CRC0124LMO0B04019001D02000']
+# Added one of MA clones as a control, manually linked cause I did not have a markedDup here, but it does not matter.
+SAMPLES=['CRC1629LMO0A04014001D02000', 'CRC1430LMO0B04008001D02000', 'CRC0124LMO0B04019001D02000', 'CRC1502-09C-2-1']
 
-BAM_SEARCH_DIRS=['/mnt/work1/snaketree/prj/snakegatk/dataset/paired_GA','/mnt/work1/snaketree/prj/snakegatk/dataset/unpaired_GA']
+BAM_SEARCH_DIRS=['/mnt/work1/snaketree/prj/snakegatk/dataset/paired_GA','/mnt/work1/snaketree/prj/snakegatk/dataset/unpaired_GA']#, '/mnt/work1/snaketree/prj/snakegatk/dataset/CRC1502_clones_2/align']
 
 def touch(fname, times=None):
     with open(fname, 'a'):

@@ -40,7 +40,13 @@ rule aintervals:
             {params.tool} --bed {input.bed} --out {params.out} --bam {input.bam} --ref {params.ref} 2> {log}
             mv aintervals_{wildcards.sample}.bed aa/{wildcards.sample}/aintervals_{wildcards.sample}.bed
         """
-            
+           
+# Qui vedo un unico rischio:
+# la mv aarchitect* in caso girino due regole in parallelo rischia di spostare robe di altri sample, credo sia risolvibile (ma correggimi!) con mv aarchitect_{sample}* ..
+# ottimo readlink per dare i path assoluti interi alla regola dopo (con quelli relativi non funzionava?),
+# non capisco perceh` bawk con FS esplicito e non le ,: NR, $1, $2 (ma non e` che sia rilevante, e` solo curiosita`)
+# va bene esplicitare sempre ma paste usa tab di default, per avere i print bellini senza buchi in genere uso \\t backslashato nelle regole e non \t, ma son davvero dettagli nemmeno 
+# secondari, ma di preferenze personali.
 rule aarchitect:
     input: bam="bam_ln/{sample}.bam", bed="aa/{sample}/aintervals_{sample}.bed" 
     params: tool=AA, ref=REF_V, ds=DOWNSAMPLE, out="aarchitect_{sample}"
@@ -60,6 +66,12 @@ rule aarchitect:
 ### this creates files but fail cause they are missing...
 ### can only leave *graph.txt and *cycles.txt
 
+#anche qui mv forse rischioso se stan girando altre regole...prenderei esplicitamente quelli che genera lui quindi:
+#
+#-rw-rw-r-- 1 egrassi trcanmed    476 Mar 12 10:19 /mnt/work1/snaketree/prj/snakegatk/dataset/paired_GA/larger10_aa_all_amplicon_classification_profiles.tsv
+#-rw-rw-r-- 1 egrassi trcanmed   5056 Mar 12 10:19 /mnt/work1/snaketree/prj/snakegatk/dataset/paired_GA/larger10_aa_all_gene_list.tsv
+#
+# .. {wildcards.sample}_all_amplicon_classification_profiles.tsv e _gene_list...se ricostruisco bene i nomi :)
 rule aclassifier:
     input: "aa/{sample}/AA/{sample}_all"
     params: tool=AA_CLASS, ref=REF_V, out="aclassifier_{sample}"
