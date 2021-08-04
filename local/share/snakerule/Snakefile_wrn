@@ -1,0 +1,26 @@
+include:'./conf.sk'
+
+rule all:
+   input: 
+       expand("aa/{sample}/AA/classifier/{sample}_all_amplicon_classification_profiles.tsv", sample=SAMPLES)
+
+
+rule bedcov:
+    input: bam="bam_ln/{sample}.bam", br=BROKEN, nbr=NONBROKEN
+    output: br="bedcov/{sample}_br.bedcov", nbr="bedcov/{sample}_nbr.bedcov"
+    benchmark: "bench/{sample}.bedcov.times"
+    shell:
+        """
+        samtools bedcov {input.br} {input.bam} > {output.br}
+        samtools bedcov {input.nbr} {input.bam} > {output.nbr}
+        """
+
+rule ta_analyze:
+    input: br="bedcov/{sample}_br.bedcov", nbr="bedcov/{sample}_nbr.bedcov"
+    output: "{sample}.ta.txt"
+    benchmark: "bench/{sample}.ta.times"
+    params: tool=TA_ANALYZE
+    shell:
+        """
+        {params.tool} -br {input.br} -nbr {input.nbr} -s {wildcards.sample} > {output}
+        """

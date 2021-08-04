@@ -1,0 +1,55 @@
+import os
+ROOT=os.environ.get('BIOINFO_ROOT')
+def find_prj_root(path=os.getcwd()):
+    if os.path.isfile(os.path.join(path,".PRJ_ROOT")):
+        return path
+    else:
+        if path:
+            return find_prj_root(os.path.dirname(path))
+        else:
+            raise Exception("Can not find the PRJ_ROOT directory")
+
+
+PRJ_ROOT=find_prj_root()
+SRC_DIR=PRJ_ROOT+'/local/src'
+BIN_DIR=PRJ_ROOT+'/local/bin'
+
+# Added one of MA clones as a control, manually linked cause I did not have a markedDup here, but it does not matter.
+SAMPLES=["CRC0282-01-0","CRC0282-01-1-A","CRC0282-01-1-B","CRC0282-01-1-C","CRC0282-01-1-D","CRC0282-01-1-E","CRC0282-01-1-F","CRC0282-01-MA-C","CRC0282-01-MA-D","CRC0282-01-MA-G","CRC0282-01-MC-D","CRC0282-01-MC-E","CRC0282-01-MC-F","CRC0282-01-MI-A","CRC0282-01-MI-D","CRC0282-01-MI-E","CRC0282-05-0","CRC0282-05-1-A","CRC0282-05-1-C","CRC0282-05-1-D","CRC0282-07-0","CRC0282-07-1-A","CRC0282-07-1-B","CRC0282-07-1-C","CRC0282-07-1-D","CRC0282-07-1-E","CRC0282-07-1-F","CRC0282NMH0000000000D07000"]
+
+BAM_SEARCH_DIRS=['/mnt/cold1/snaketree/prj/snakegatk/dataset/CRC0282_clones/']
+TA_DIR="/mnt/cold1/snaketree/prj/snakegatk/local/src/ta_analyser/analyse_ta/data"
+BROKEN=TA_DIR+'/liftover_broken_ta_sorted_fai.bed.gz'
+NONBROKEN=TA_DIR+'/liftover_non_broken_ta_sorted_fai.bed.gz'
+TA_ANALYZE="/home/egrassi/.local/bin/analyse_ta"
+
+def touch(fname, times=None):
+    with open(fname, 'a'):
+        os.utime(fname, times)
+
+rule link_bams:
+    output: "linked_bams.plh"
+    run:
+        import glob
+        import os
+        found = []
+        samples = [] # too lazy to setup a dict now
+        for s in SAMPLES:
+            for bd in BAM_SEARCH_DIRS:
+                f = os.path.join(bd, 'align', 'realigned_'+s+'.bam')
+                fi = os.path.join(bd, 'align', 'realigned_'+s+'.bai')
+                #print(f)
+                if os.path.exists(f):
+                    found.append(f)
+                    samples.append(s)
+        if len(found) != len(SAMPLES):
+            print('Did not found a bam for each samples, check the conf.sk!')
+            raise RuleException()
+        os.makedirs('bam_ln')
+        i = 0
+        for f in found:
+            os.symlink(f, os.path.join('bam_ln', samples[i]+'.bam'))
+            os.symlink(fi, os.path.join('bam_ln', samples[i]+'.bai'))
+            i += 1
+        touch(output[0])
+
